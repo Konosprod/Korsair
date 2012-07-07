@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/ressources">
+        <file alias="iHome">ressources/home.png</file>
+        <file alias="iIcon">ressources/icon.png</file>
+        <file alias="iLoad">ressources/lunch.png</file>
+        <file alias="iNext">ressources/next.png</file>
+        <file alias="iRefresh">ressources/refresh.png</file>
+        <file alias="iReturn">ressources/return.png</file>
+    </qresource>
+</RCC>

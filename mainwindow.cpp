@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "preferencewindow.h"
 
 mainWindow::mainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -21,6 +22,8 @@ mainWindow::mainWindow(QWidget *parent) :
     layout->addWidget(m_Tab);
     this->setCentralWidget(ecran);
 
+    settings = new QSettings("Tartine", "Korsair", this);
+
     setupAction();
     setupMenu();
     setupToolBar();
@@ -41,7 +44,10 @@ void mainWindow::tabChanged(int)
 
 void mainWindow::closeTabRequested(int i)
 {
-    m_Tab->removeTab(i);
+    if(m_Tab->count() > 1)
+    {
+        m_Tab->removeTab(i);
+    }
 }
 
 void mainWindow::setTabTitle(QString s)
@@ -110,6 +116,7 @@ void mainWindow::addTabEmpty()
     m_Tab->setCurrentIndex(i);
     m_EntryUrl->setText("");
     m_EntryUrl->setFocus();
+    wbv->page()->setForwardUnsupportedContent(true);
 
     connect(wbv, SIGNAL(loadStarted()), this, SLOT(beginLoad()));
     connect(wbv, SIGNAL(loadProgress(int)), this, SLOT(progressLoad(int)));
@@ -117,6 +124,55 @@ void mainWindow::addTabEmpty()
     connect(wbv, SIGNAL(titleChanged(QString)), this, SLOT(setTabTitle(QString)));
     connect(wbv, SIGNAL(titleChanged(QString)), this, SLOT(setnewWindowTitle(QString)));
     connect(wbv, SIGNAL(urlChanged(QUrl)), this, SLOT(newUrl(QUrl)));
+    connect(wbv->page(), SIGNAL(downloadRequested(QNetworkRequest)), this, SLOT(downloadContent(QNetworkRequest)));
+    connect(wbv->page(), SIGNAL(unsupportedContent(QNetworkReply*)), this, SLOT(downloadUnsuportedContent(QNetworkReply*)));
+}
+
+void mainWindow::downloadContent(QNetworkRequest request)
+{
+    QNetworkAccessManager* nam = new QNetworkAccessManager(this);
+
+    nam->get(request);
+
+    connect(nam, SIGNAL(finished(QNetworkReply*)), this, SLOT(downloadFinished(QNetworkReply*)));
+}
+
+void mainWindow::downloadFinished(QNetworkReply* rep)
+{
+    if(rep->bytesAvailable())
+    {
+        QFileInfo fi(rep->url().toString());
+
+        QString filename = fi.fileName();
+        QFile fichierATelecharger(settings->value("defaultDownloadPath", QDir::homePath()).toString() + "/" + filename);
+        fichierATelecharger.open(QIODevice::WriteOnly | QIODevice::Truncate);
+        fichierATelecharger.write(rep->readAll());
+        fichierATelecharger.close();
+    }
+}
+
+void mainWindow::downloadUnsuportedContent(QNetworkReply *reponse)
+{
+    if(!reponse->bytesAvailable())
+    {
+        return;
+    }
+
+    QNetworkRequest req(reponse->url());
+
+    QFileInfo fi(reponse->url().toString());
+
+    int repq = QMessageBox::question(this, "Télécharger ?", "Voulez-vous télécharger le fichier : "
+                                     + fi.fileName(), QMessageBox::Yes | QMessageBox::No);
+
+    if(repq == QMessageBox::Yes)
+    {
+        this->downloadContent(req);
+    }
+    else
+    {
+        return;
+    }
 }
 
 QWebView* mainWindow::currentPage()
@@ -144,7 +200,7 @@ void mainWindow::homePage()
 {
     if(currentPage() != 0)
     {
-        currentPage()->setUrl(QUrl("http://www.google.fr"));
+        currentPage()->setUrl(QUrl(settings->value("defaultHomePage", "http://www.google.com/").toString()));
     }
 }
 
@@ -158,8 +214,9 @@ void mainWindow::refreshPage()
 
 void mainWindow::closeTab()
 {
-    if(m_Tab->count() > 0)
+    if(m_Tab->count() > 1)
     {
+        m_Tab->currentWidget()->deleteLater();
         m_Tab->removeTab(m_Tab->currentIndex());
     }
 }
@@ -263,17 +320,37 @@ void mainWindow::setupAction()
     m_actionQuit = new QAction("Quitter", this);
     m_actionQuit->setShortcut(QKeySequence("Ctrl+Q"));
 
+    m_actionEditPref = new QAction("Préférences", this);
+    connect(m_actionEditPref, SIGNAL(triggered()), this, SLOT(editPref()));
+
+}
+
+void mainWindow::editPref()
+{
+    preferenceWindow* w = new preferenceWindow(this, currentPage()->url().toString());
+
+
+    if( w->exec() == QDialog::Accepted)
+    {
+        settings->setValue("defaultHomePage", w->homePath());
+        QMessageBox::information(this, w->homePath(), "texte");
+        settings->setValue("defaultDownloadPath", w->downloadPath());
+        settings->sync();
+    }
 }
 
 void mainWindow::setupMenu()
 {
     QMenu* menuFichier = menuBar()->addMenu("Fichier");
+    QMenu* menuEdition = menuBar()->addMenu("Édition");
     QMenu* menuNavigation = menuBar()->addMenu("Navigation");
 
     menuFichier->addAction(m_actionNewTab);
     menuFichier->addAction(m_actionCloseTab);
     menuFichier->addSeparator();
     menuFichier->addAction(m_actionQuit);
+
+    menuEdition->addAction(m_actionEditPref);
 
     menuNavigation->addAction(m_actionReturn);
     menuNavigation->addAction(m_actionNext);

@@ -34,6 +34,10 @@ public slots:
     void finishLoad(bool);
     void closeTabRequested(int);
     void tabChanged(int);
+    void downloadContent(QNetworkRequest);
+    void downloadUnsuportedContent(QNetworkReply*);
+    void downloadFinished(QNetworkReply*);
+    void editPref();
 
 private:
     void setupAction();
@@ -59,6 +63,9 @@ private:
     QAction* m_actionRefresh;
     QAction* m_actionQuit;
     QAction* m_actionGoogle;
+    QAction* m_actionEditPref;
+
+    QSettings* settings;
 };
 
 #endif // MAINWINDOW_H

@@ -333,7 +333,6 @@ void mainWindow::editPref()
     if( w->exec() == QDialog::Accepted)
     {
         settings->setValue("defaultHomePage", w->homePath());
-        QMessageBox::information(this, w->homePath(), "texte");
         settings->setValue("defaultDownloadPath", w->downloadPath());
         settings->sync();
     }

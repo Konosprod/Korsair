@@ -9,15 +9,18 @@
   SET( KORSAIR_SRCS
     main.cpp
     mainwindow.cpp
+    preferencewindow.cpp
   )
   
   # another list, this time it includes all header files that should be treated with moc
   SET( KORSAIR_MOC_HDRS
     mainwindow.h
+    preferencewindow.h
   )
   
   SET( KORSAIR_UIS
     mainwindow.ui
+    preferencewindow.ui
   )
     
   

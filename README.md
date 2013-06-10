@@ -1,3 +1,8 @@
+Korsair
+=======
+
+Petit navigateur web sans prétention
+
 Comment compiler ?
 
 - Téléchargez et extrayez l'archive quelque part dans votre ordinateur
